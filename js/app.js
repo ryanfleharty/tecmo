@@ -12,6 +12,7 @@ const game = {
     "eligibleReceivers": [],
     "targetedReceiver": null,
     "ballIsThrown": false,
+    "playIsChosen": false,
     "endZoneLocation": 2250,
     "down": 1,
     "yardsToGo": 10,
@@ -42,6 +43,14 @@ class Player{
         }
         ctx.fill()
         ctx.closePath();
+        //SHOW THE BALLCARRIER WITH THE BALL
+        if(game.ballCarrier == this){
+            ctx.beginPath();
+            ctx.rect(game.ballCarrier.xCoordinate, game.ballCarrier.yCoordinate, 10, 10);
+            ctx.fillStyle = "brown"
+            ctx.fill()
+            ctx.closePath();
+        }
     }
     move(direction){
         if(direction == "right"){
@@ -164,7 +173,7 @@ addEventListener("keydown", (e)=>{
     }
     if(e.which == 32){ //snap the ball!!! play starts logic here.
         e.preventDefault();
-        if(!ballInPlay){
+        if(!ballInPlay && game.playIsChosen){
             snapTheBall();
         }
     } else if(e.which == game.throwButton && ballInPlay && game.ballCarrier.position == "qb"){ //THROW THE BALL 
@@ -243,6 +252,8 @@ function drawAll(){
         }
         
     }
+    console.log("DRAWING EVERTYTHING");
+    console.log(scrimmage);
     drawField();
     game.keysPressed.forEach(function(keyCode){
         activateMovement(keyCode);
@@ -258,8 +269,6 @@ function drawAll(){
     })
     //ARROW OVER SELECTED RECEIVER
     highlightSelectedReceiver();
-    //BALL GOES TO BALLCARRIER
-    showBallCarrierWithBall();
     //CHECK FOR TOUCHDOWN
     if(game.ballCarrier.xCoordinate >= game.endZoneLocation){
         touchDown();
@@ -267,25 +276,32 @@ function drawAll(){
     }
 }
 function activateMovement(keyCode){
-    if(keyCode == 39){
-        game.ballCarrier.move("right");
+    if(!game.ballIsThrown){
+        if(keyCode == 39){
+            game.ballCarrier.move("right");
+        }
+        if(keyCode == 37){
+            game.ballCarrier.move("left");
+        }
+        if(keyCode == 38){
+            game.ballCarrier.move("down")
+        }
+        if(keyCode == 40){
+            game.ballCarrier.move("up")
+        }
     }
-    if(keyCode == 37){
-        game.ballCarrier.move("left");
-    }
-    if(keyCode == 38){
-        game.ballCarrier.move("down")
-    }
-    if(keyCode == 40){
-        game.ballCarrier.move("up")
-    }
+
 }
 //DEFINE GAME FUNCTIONS
 function setUpPlay(){
     game.ballCarrier = drewBrees;
     resetPlayerAttributes();
-    resetFormations();
-    drawAll();
+    choosePlay(function(offensiveFormation){
+        console.log("PLAY IS CHOSEN");
+        console.log(offensiveFormation);
+        resetFormations(offensiveFormation);
+        drawAll();
+    });
 }
 function snapTheBall(){
     game.ballCarrier = drewBrees;
@@ -318,12 +334,13 @@ function throwBall(){
 function ballCarrierIsTackled(){
     clearInterval(playProceeds);
     calculateAndDisplayDown();
+    game.playIsChosen = false;
     game.playEndedAt = game.ballCarrier.xCoordinate;
     let yardsGained = game.playEndedAt - game.playStartedAt;
     ballInPlay = false;
     scrimmage = game.ballCarrier.xCoordinate;
     ctx.translate(-yardsGained, 0)
-    setUpPlay();
+    setTimeout(setUpPlay, 1000)
 }
 function calculateAndDisplayDown(){
     game.endingYard = game.ballCarrier.xCoordinate;
@@ -343,15 +360,7 @@ function touchDown(){
     ballInPlay = false;
     $('#score-board').text("TOUCHDOWN!!!")
 }
-function resetFormations(){
-    let formation1 = {
-        "rb": {x: scrimmage - 50, y: canvas.height/2 - 50},
-        "wr": {x: scrimmage, y: canvas.height - 50},
-        "lt": {x: scrimmage, y: canvas.height/2 + 50},
-        "c": {x: scrimmage, y: canvas.height/2},
-        "rt": {x: scrimmage, y: canvas.height/2 - 50},
-        "qb": {x: scrimmage - 75, y: canvas.height/2}
-    }
+function resetFormations(offensiveFormation){
     let formation2 = {
         "de": { x: scrimmage + 50, y: canvas.height/2 + 50},
         "lb": { x: scrimmage + 100, y: canvas.height/2},
@@ -359,7 +368,7 @@ function resetFormations(){
         "cb": { x: scrimmage + 125, y: canvas.height/2 + 200},
         "olb": { x: scrimmage + 100, y: canvas.height/2 + 100}
     }
-    setOffensiveFormation(formation1);
+    setOffensiveFormation(offensiveFormation);
     setDefensiveFormation(formation2);
 }
 function resetPlayerAttributes(){
@@ -387,13 +396,6 @@ function setDefensiveFormation(formation){
         player.yCoordinate = formation[position]["y"];
     })
 }
-function showBallCarrierWithBall(){
-        ctx.beginPath();
-        ctx.rect(game.ballCarrier.xCoordinate, game.ballCarrier.yCoordinate, 10, 10);
-        ctx.fillStyle = "brown"
-        ctx.fill()
-        ctx.closePath();
-}
 function highlightSelectedReceiver(){
     if(game.ballCarrier.position == "qb"){
         ctx.beginPath();
@@ -402,4 +404,33 @@ function highlightSelectedReceiver(){
         ctx.fill()
         ctx.closePath();
     }
+}
+function choosePlay(callback){
+    $('body').append("<div class='play-choices'><button play='one'>Pass 1</button><button play='two'>Play 2</button></div>");
+    $('canvas').hide();
+    $('.play-choices button').click(function(){
+        $('.play-choices').remove()
+        let formationChoice = $(this).attr("play");
+        $('canvas').show()
+        game.playIsChosen = true;
+        if(formationChoice == "one"){
+            callback({
+                "rb": {x: scrimmage - 50, y: canvas.height/2 - 50},
+                "wr": {x: scrimmage, y: canvas.height - 50},
+                "lt": {x: scrimmage, y: canvas.height/2 + 50},
+                "c": {x: scrimmage, y: canvas.height/2},
+                "rt": {x: scrimmage, y: canvas.height/2 - 50},
+                "qb": {x: scrimmage - 75, y: canvas.height/2}
+            })
+        } else if(formationChoice == "two"){
+            callback({
+                "rb": {x: scrimmage, y: canvas.height/2 - 150},
+                "wr": {x: scrimmage, y: canvas.height - 50},
+                "lt": {x: scrimmage, y: canvas.height/2 + 50},
+                "c": {x: scrimmage, y: canvas.height/2},
+                "rt": {x: scrimmage, y: canvas.height/2 - 50},
+                "qb": {x: scrimmage - 100, y: canvas.height/2}
+            })
+        }
+    })
 }
