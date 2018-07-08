@@ -13,7 +13,6 @@ const game = {
     "targetedReceiver": null,
     "ballIsThrown": false,
     "playIsChosen": false,
-    "passOrRun": null,
     "endZoneLocation": 2250,
     "down": 1,
     "yardsToGo": 10,
@@ -177,7 +176,7 @@ addEventListener("keydown", (e)=>{
         if(!ballInPlay && game.playIsChosen){
             snapTheBall();
         }
-    } else if(e.which == game.throwButton && ballInPlay && game.ballCarrier.position == "qb" && game.passOrRun == "pass"){ //THROW THE BALL 
+    } else if(e.which == game.throwButton && ballInPlay && game.ballCarrier.position == "qb"){ //THROW THE BALL 
         throwBall();
     } else if(e.which == game.changeReceiverButton && ballInPlay){ //CHANGE RECEIVER
         let receiverIndex = game.eligibleReceivers.indexOf(game.targetedReceiver);
@@ -253,6 +252,8 @@ function drawAll(){
         }
         
     }
+    console.log("DRAWING EVERTYTHING");
+    console.log(scrimmage);
     drawField();
     game.keysPressed.forEach(function(keyCode){
         activateMovement(keyCode);
@@ -296,8 +297,9 @@ function setUpPlay(){
     game.ballCarrier = drewBrees;
     resetPlayerAttributes();
     choosePlay(function(offensiveFormation){
+        console.log("PLAY IS CHOSEN");
+        console.log(offensiveFormation);
         resetFormations(offensiveFormation);
-        console.log(galeSayers.xCoordinate);
         drawAll();
     });
 }
@@ -305,12 +307,6 @@ function snapTheBall(){
     game.ballCarrier = drewBrees;
     game.startingYard = scrimmage;
     game.playStartedAt = scrimmage;
-    if(game.passOrRun == "run"){
-        console.log(galeSayers.xCoordinate);
-        setTimeout(handOff, 500, galeSayers);
-    } else if(game.passOrRun == "pass"){
-        julioJones.runRoute();
-    }
     playProceeds = setInterval(drawAll, game.frameRate)
     ballInPlay = true;
     game.offense.forEach((player)=>{
@@ -318,9 +314,7 @@ function snapTheBall(){
             game.eligibleReceivers.push(player);
         }
     })
-}
-function handOff(player){
-    game.ballCarrier = player;
+    julioJones.runRoute();
 }
 function throwBall(){
         game.ballXCoordinate = game.ballCarrier.xCoordinate;
@@ -412,7 +406,7 @@ function highlightSelectedReceiver(){
     }
 }
 function choosePlay(callback){
-    $('body').append("<div class='play-choices'><button play='one'>Run</button><button play='two'>Pass</button></div>");
+    $('body').append("<div class='play-choices'><button play='one'>Pass 1</button><button play='two'>Play 2</button></div>");
     $('canvas').hide();
     $('.play-choices button').click(function(){
         $('.play-choices').remove()
@@ -420,7 +414,6 @@ function choosePlay(callback){
         $('canvas').show()
         game.playIsChosen = true;
         if(formationChoice == "one"){
-            game.passOrRun = "run";
             callback({
                 "rb": {x: scrimmage - 50, y: canvas.height/2 - 50},
                 "wr": {x: scrimmage, y: canvas.height - 50},
@@ -430,7 +423,6 @@ function choosePlay(callback){
                 "qb": {x: scrimmage - 75, y: canvas.height/2}
             })
         } else if(formationChoice == "two"){
-            game.passOrRun = "pass";
             callback({
                 "rb": {x: scrimmage, y: canvas.height/2 - 150},
                 "wr": {x: scrimmage, y: canvas.height - 50},
